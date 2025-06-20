@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  text-rendering: geometricPrecision;
+}
+
+body {
+  background: #e3e3e3;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+}
+
+@page {
+  size: A3;
+  padding-bottom: 2rem;
+}
+
+@theme {
+  --color-primary: #3a3c40;
+  --color-secondary: #e3e3e3;
+  --color-active: #45caae;
+  --color-typography: #333;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 0;
+  box-shadow:
+    0 0 0 0.0625rem white,
+    0 0 0 0.1875rem #005fcc;
+}
+
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+}
