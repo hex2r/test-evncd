@@ -12,8 +12,4 @@ COPY prisma ./prisma/
 
 RUN pnpm install --frozen-lockfile
 
-RUN npx prisma generate
-
-RUN npx prisma migrate dev
-
 EXPOSE 3000

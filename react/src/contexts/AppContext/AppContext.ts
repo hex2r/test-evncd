@@ -2,6 +2,7 @@ import { createContext } from "react"
 
 export type AppContextProps = {
   query: string
+  domain: string
 }
 
 export const AppContext = createContext<AppContextProps | undefined>(undefined)

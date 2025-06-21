@@ -32,8 +32,6 @@ export default function PaginatedTable({
     [limit],
   )
 
-  console.log("memorizedLimit", memorizedLimit)
-
   return (
     <div className="flex flex-col grow overflow-hidden print:overflow-visible">
       {children}

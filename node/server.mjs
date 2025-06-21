@@ -3,38 +3,62 @@ import cors from "cors"
 import { PrismaClient } from "./generated/prisma/index.js"
 
 const app = express()
-
-const PORT = process.env.APP_PORT || 3000
-
 const prisma = new PrismaClient()
+const PORT = process.env.APP_PORT || 3000
 
 app.use(cors())
 
 app.get("/api/v1/results", async (req, res) => {
   try {
-    const { q } = req.query
+    const { q, limit, page } = req.query
+    const currentLimit = Number(limit || 10)
+    const currentPage = Math.max(1, Number(page || 1))
 
-    const data = await prisma.page
-      .findMany({
-        where: {
-          url: { contains: q },
-        },
-        select: {
-          url: true,
-          issues: true,
-        },
-      })
-      .then((data) =>
-        data.reduce(
-          (acc, { url, issues }) => ({
+    const [issuesCount, data] = await prisma
+      .$transaction([
+        prisma.issue.count({
+          where: {
+            url: { contains: q },
+          },
+        }),
+        prisma.issue.findMany({
+          skip: (currentPage - 1) * currentLimit,
+          take: currentLimit,
+          where: {
+            url: { contains: q, mode: "insensitive" },
+          },
+          select: {
+            url: true,
+            type: true,
+            severity: true,
+            component: true,
+            selector: true,
+          },
+        }),
+      ])
+      .then(([issuesCount, results]) => [
+        issuesCount,
+        results.reduce(
+          (acc, { url, ...options }) => ({
             ...acc,
-            [url]: issues,
+            [url]: [...(acc[url] || []), options],
           }),
           {},
         ),
-      )
+      ])
 
-    res.status(200).send(JSON.stringify({ data }))
+    res.status(200).send(
+      JSON.stringify({
+        data,
+        pagination: {
+          currentPage,
+          total: Math.ceil(issuesCount / currentLimit),
+          limit: currentLimit,
+          hasPrevious: currentPage > 1,
+          hasNext: currentPage < Math.ceil(issuesCount / currentLimit),
+        },
+      }),
+    )
   } catch (e) {
     process.exit(1)
   } finally {
@@ -46,24 +70,26 @@ app.get("/api/v1/tree", async (req, res) => {
   try {
     const { q } = req.query
 
-    const data = await prisma.page
+    const data = await prisma.issue
       .findMany({
         where: {
           url: { contains: q },
         },
         select: {
           url: true,
-          issues: true,
         },
       })
-      .then((data) =>
-        data.reduce(
-          (acc, { url, issues }) => ({ ...acc, [url]: issues.length }),
+      .then((results) =>
+        Object.values(results).reduce(
+          (acc, { url }) => ({
+            ...acc,
+            [url]: url in acc ? acc[url] + 1 : 1,
+          }),
           {},
         ),
       )
 
-    res.status(200).send(JSON.stringify({ data }))
+    res.status(200).send(JSON.stringify({ ...data }))
   } catch (e) {
     process.exit(1)
   } finally {

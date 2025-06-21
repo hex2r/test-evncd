@@ -1,8 +1,6 @@
 import type { KeyboardEvent, MouseEvent } from "react"
 
-export type ResponseTreeData = {
-  data: Record<string, number>
-}
+export type ResponseTreeData = Record<string, number>
 
 type TreeItem = {
   children?: Tree
@@ -12,11 +10,9 @@ type TreeItem = {
   path: string
 }
 
-type PropsWithUrl = { url: string }
+type PropsWithUrl = Record<"url", string>
 
-export type Tree = {
-  [url: string]: TreeItem
-}
+export type Tree = Record<string, TreeItem>
 
 export type FilterTreeNavigation = {
   filter: string
