@@ -6,7 +6,10 @@ import { fetchTreeData } from "../../../api"
 import { useAppContext } from "../../../contexts/AppContext"
 
 export default function useNavigationTree() {
-  const domain = useAppContext((state) => state.domain)
+  const { domain, query } = useAppContext(({ domain, query }) => ({
+    domain,
+    query,
+  }))
   const { filter, onFilterChange } = useFilterTree()
 
   const {
@@ -23,7 +26,7 @@ export default function useNavigationTree() {
   }, [isError, error])
 
   return {
-    data: transformToTree(filterTreeData(results, filter) || {}),
+    data: transformToTree(filterTreeData(results, filter) || {}, query),
     filter,
     onFilterChange,
   }

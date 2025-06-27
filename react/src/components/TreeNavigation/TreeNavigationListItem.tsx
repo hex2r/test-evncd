@@ -7,7 +7,7 @@ export default function TreeNavigationListItem({
   data: { children, ...itemProps },
   itemClassName,
 }: TreeNavigationListItemProps) {
-  const [isExpanded, setExpanded] = useState(true)
+  const [isExpanded, setExpanded] = useState(itemProps.isExpanded)
   const hasChildren = Boolean(children)
 
   const toggle: TreeToggleFunction = useCallback((e) => {

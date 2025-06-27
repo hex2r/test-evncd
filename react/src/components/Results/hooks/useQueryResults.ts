@@ -6,16 +6,71 @@ import { PAGINATION } from "../../../config"
 import { QUERY_PARAMS } from "../../../config/constants"
 import usePersistQueryURL from "../../../hooks/usePersistQueryURL"
 
-export default function useQueryResults() {
-  const { get, set } = usePersistQueryURL()
-  const [currentPage, setCurrentPage] = useState(
-    Number(get(QUERY_PARAMS.PAGE) || PAGINATION.DEFAULT_PAGE),
-  )
-  const [limit, setLimit] = useState(
-    Number(get(QUERY_PARAMS.LIMIT) || PAGINATION.DEFAULT_LIMIT),
-  )
+const { DEFAULT_PAGE, DEFAULT_LIMIT } = PAGINATION
+const { PAGE, LIMIT } = QUERY_PARAMS
 
+const defaultPagination = {
+  currentPage: DEFAULT_PAGE,
+  limit: DEFAULT_LIMIT,
+  total: 1,
+  hasNext: false,
+  hasPrevious: false,
+}
+
+export default function usePersistedPaginatedResults() {
+  const { get, set, remove } = usePersistQueryURL()
+  const { data, pagination, isLoading } = usePaginatedQueryResults({
+    defaultPage: Number(get(PAGE) || DEFAULT_PAGE),
+    defaultLimit: Number(get(LIMIT) || DEFAULT_LIMIT),
+  })
+
+  const onSelectPage = useCallback((number: number) => {
+    if (pagination.currentPage !== DEFAULT_PAGE) set(PAGE, `${number}`)
+    else remove(PAGE)
+
+    pagination.onSelectPage(number)
+  }, [])
+
+  const onSelectLimit = useCallback((number: number) => {
+    if (pagination.limit !== DEFAULT_LIMIT) set(LIMIT, `${number}`)
+    else remove(LIMIT)
+
+    pagination.onSelectLimit(number)
+  }, [])
+
+  const syncQueryParams = useCallback(() => {
+    if (pagination.currentPage !== DEFAULT_PAGE)
+      set(PAGE, `${pagination.currentPage}`)
+    else remove(PAGE)
+
+    if (pagination.limit !== DEFAULT_LIMIT) set(LIMIT, `${pagination.limit}`)
+    else remove(LIMIT)
+  }, [pagination])
+
+  useEffect(syncQueryParams, [syncQueryParams])
+
+  return {
+    data,
+    isLoading,
+    pagination: {
+      ...pagination,
+      onSelectPage,
+      onSelectLimit,
+    },
+  }
+}
+
+export function usePaginatedQueryResults({
+  defaultPage = DEFAULT_PAGE,
+  defaultLimit = DEFAULT_LIMIT,
+}: {
+  defaultPage?: number
+  defaultLimit?: number
+}) {
+  const [currentPage, setCurrentPage] = useState(defaultPage)
+  const [limit, setLimit] = useState(defaultLimit)
   const query = useAppContext((state) => state.query)
+
   const {
     data: results,
     isFetching,
@@ -37,49 +92,26 @@ export default function useQueryResults() {
     throwOnError: true,
   })
 
-  const { data, pagination } = results || { data: {}, pagination: {} }
-
-  const onSelectPage = useCallback(
-    (number: number) => {
-      setCurrentPage(number)
-      set(QUERY_PARAMS.PAGE, `${number}`)
-    },
-    [set],
-  )
-
-  const onSelectLimit = useCallback(
-    (number: number) => {
-      setLimit(number)
-      set(QUERY_PARAMS.LIMIT, `${number}`)
-      onSelectPage(PAGINATION.DEFAULT_PAGE)
-    },
-    [onSelectPage, set],
-  )
+  const { data, pagination } = results || {
+    data: {},
+    pagination: {},
+  }
 
   const memorizedPagination = useMemo(
     () => ({
-      ...{
-        currentPage: PAGINATION.DEFAULT_PAGE,
-        limit: PAGINATION.DEFAULT_LIMIT,
-        total: 1,
-        hasNext: false,
-        hasPrevious: false,
-      },
+      ...defaultPagination,
       ...pagination,
-      onSelectPage,
-      onSelectLimit,
     }),
-    [pagination, onSelectPage, onSelectLimit],
+    [pagination],
   )
-
-  useEffect(() => {
-    set(QUERY_PARAMS.PAGE, `${memorizedPagination.currentPage}`)
-    set(QUERY_PARAMS.LIMIT, `${memorizedPagination.limit}`)
-  }, [set, memorizedPagination])
 
   return {
     data,
-    pagination: memorizedPagination,
+    pagination: {
+      ...memorizedPagination,
+      onSelectPage: setCurrentPage,
+      onSelectLimit: setLimit,
+    },
     isLoading: (isFetching && !isFetched) || isPending,
   }
 }

@@ -8,6 +8,7 @@ type TreeItem = {
   label: string
   origin?: string
   path: string
+  isExpanded: boolean
 }
 
 type PropsWithUrl = Record<"url", string>

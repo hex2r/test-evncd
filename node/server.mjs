@@ -4,40 +4,43 @@ import { PrismaClient } from "./generated/prisma/index.js"
 
 const app = express()
 const prisma = new PrismaClient()
-const PORT = process.env.APP_PORT || 3000
+const { APP_PORT, API_RESULTS, API_TREE } = process.env
+const PORT = APP_PORT ?? 3000
 
 app.use(cors())
 
-app.get("/api/v1/results", async (req, res) => {
-  try {
-    const { q, limit, page } = req.query
-    const currentLimit = Number(limit || 10)
-    const currentPage = Math.max(1, Number(page || 1))
+app.get(API_RESULTS, async (req, res) => {
+  const { q, limit, page } = req.query
+  const currentLimit = Number(limit ?? 10)
+  let currentPage = Math.max(1, Number(page ?? 1))
 
-    const [issuesCount, data] = await prisma
-      .$transaction([
-        prisma.issue.count({
-          where: {
-            url: { contains: q },
-          },
-        }),
-        prisma.issue.findMany({
-          skip: (currentPage - 1) * currentLimit,
-          take: currentLimit,
-          where: {
-            url: { contains: q, mode: "insensitive" },
-          },
-          select: {
-            url: true,
-            type: true,
-            severity: true,
-            component: true,
-            selector: true,
-          },
-        }),
-      ])
-      .then(([issuesCount, results]) => [
-        issuesCount,
+  try {
+    const count = await prisma.issue.count({
+      where: {
+        url: { startsWith: q, mode: "insensitive" },
+      },
+    })
+
+    const totalPages = Math.ceil(count / currentLimit)
+
+    currentPage = Math.min(currentPage, totalPages)
+
+    const data = await prisma.issue
+      .findMany({
+        skip: (currentPage - 1) * currentLimit,
+        take: currentLimit,
+        where: {
+          url: { startsWith: q, mode: "insensitive" },
+        },
+        select: {
+          url: true,
+          type: true,
+          severity: true,
+          component: true,
+          selector: true,
+        },
+      })
+      .then((results) =>
         results.reduce(
           (acc, { url, ...options }) => ({
             ...acc,
@@ -45,17 +48,17 @@ app.get("/api/v1/results", async (req, res) => {
           }),
           {},
         ),
-      ])
+      )
 
     res.status(200).send(
       JSON.stringify({
         data,
         pagination: {
           currentPage,
-          total: Math.ceil(issuesCount / currentLimit),
+          total: totalPages,
           limit: currentLimit,
           hasPrevious: currentPage > 1,
-          hasNext: currentPage < Math.ceil(issuesCount / currentLimit),
+          hasNext: currentPage < totalPages,
         },
       }),
     )
@@ -66,14 +69,14 @@ app.get("/api/v1/results", async (req, res) => {
   }
 })
 
-app.get("/api/v1/tree", async (req, res) => {
-  try {
-    const { q } = req.query
+app.get(API_TREE, async (req, res) => {
+  const { q } = req.query
 
+  try {
     const data = await prisma.issue
       .findMany({
         where: {
-          url: { contains: q },
+          url: { contains: q, mode: "insensitive" },
         },
         select: {
           url: true,

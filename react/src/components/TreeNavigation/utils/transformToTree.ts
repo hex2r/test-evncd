@@ -1,8 +1,9 @@
-import type { ResponseTreeData, Tree } from "../types"
+import type { Tree } from "../types"
 import getIssuesCount from "./getIssuesCount"
 
 export default function transformDataToTree(
   data: Record<string, number>,
+  query: string,
 ): Tree {
   return (Object.entries(data) as [string, number][]).reduce((acc, [url]) => {
     const urlObject = new URL(url)
@@ -17,6 +18,7 @@ export default function transformDataToTree(
           label: "root",
           children: {},
           origin: urlObject.origin,
+          isExpanded: true,
         },
       }
     }
@@ -31,6 +33,7 @@ export default function transformDataToTree(
           url: urlObject.origin,
           pathname: urlObject.pathname,
           data,
+          query,
         }),
       },
     }
@@ -43,12 +46,14 @@ function buildTree({
   treePath,
   acc,
   data,
+  query,
 }: {
   acc: Tree
   url: string
   pathname: string
   treePath: string
   data: Record<string, number>
+  query: string
 }): Tree | undefined {
   const splittedPathname = pathname.split("/")
 
@@ -67,6 +72,7 @@ function buildTree({
         pathname: nextPathname,
         treePath,
         data,
+        query,
       })
     }
 
@@ -76,6 +82,7 @@ function buildTree({
         label: currentPathLabel,
         path: `${treePath}/${currentPathLabel}`,
         issuesCount: getIssuesCount(`${url}/${currentPathLabel}`, data),
+        isExpanded: query.startsWith(`${url}/${currentPathLabel}`),
         ...(nextPathname.length > 0
           ? {
               children:
@@ -85,6 +92,7 @@ function buildTree({
                   pathname: nextPathname,
                   treePath: `${treePath}/${currentPathLabel}`,
                   data,
+                  query,
                 }) || {},
             }
           : {}),

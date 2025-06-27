@@ -2,7 +2,6 @@ import isEmpty from "lodash-es/isEmpty"
 import BaseTreeNavigation from "./BaseTreeNavigation"
 import FilterTree from "./FilterTree"
 import useNavigationTree from "./hooks/useNavigationTree"
-import { fetchTreeData } from "../../api"
 import {
   CursorNavigationProvider,
   useCursorNavigationContext,
@@ -17,10 +16,10 @@ export default function AccessibleTreeNavigation() {
 }
 
 function TreeNavigation() {
-  const { data, filter, onFilterChange } = useNavigationTree(fetchTreeData)
+  const { data, filter, onFilterChange } = useNavigationTree()
   const noData = isEmpty(data)
   const { parentRef, onNavigate } = useCursorNavigationContext(
-    ({ parentRef, onNavigate }) => ({ parentRef, onNavigate })
+    ({ parentRef, onNavigate }) => ({ parentRef, onNavigate }),
   )
 
   return (

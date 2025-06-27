@@ -14,8 +14,6 @@ services:
   pgadmin:
     container_name: pgadmin
     image: dpage/pgadmin4
-    depends_on:
-      - db
     networks:
       - node-network
     ports:
@@ -23,6 +21,8 @@ services:
     env_file:
       - "./node/.env"
     restart: unless-stopped
+    depends_on:
+      - db
   backend:
     container_name: backend
     build:
